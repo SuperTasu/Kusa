@@ -46,9 +46,9 @@
 </head>
 <body>
   <div class="container">
-    <!-- 在家町 -->
+    <!-- 今在家町 -->
     <div class="panel" id="zaike">
-      <div class="title">🚏 在家町</div>
+      <div class="title">🚏 今在家町</div>
       <div class="controls">
         <select onchange="updateDay('zaike', this.value)">
           <option value="weekday">平日</option>
