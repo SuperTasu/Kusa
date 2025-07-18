@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>バス電光掲示板</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    .panel {
+      flex: 1;
+      border-left: 1px solid #444;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .title {
+      font-size: 1.5em;
+      margin-bottom: 5px;
+    }
+    .controls {
+      margin-bottom: 10px;
+    }
+    select, button {
+      padding: 5px;
+      margin-right: 5px;
+      font-size: 1em;
+    }
+    .bus-line {
+      margin: 10px 0;
+    }
+    .bus-line h4 {
+      color: #ffd700;
+      margin-bottom: 4px;
+    }
+    .bus-time {
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 在家町 -->
+    <div class="panel" id="zaike">
+      <div class="title">🚏 在家町</div>
+      <div class="controls">
+        <select onchange="updateDay('zaike', this.value)">
+          <option value="weekday">平日</option>
+          <option value="holiday">土日</option>
+        </select>
+        <button onclick="toggleDir('zaike')">右回 ↔ 左回</button>
+      </div>
+      <div class="bus-info" id="info-zaike"></div>
+    </div>
+
+    <!-- 夢野町3丁目 / 名倉町 -->
+    <div class="panel" id="yume">
+      <div class="title">
+        🚏 
+        <select onchange="changeYumeStop(this.value)">
+          <option value="夢野町3丁目">夢野町3丁目</option>
+          <option value="名倉町">名倉町</option>
+        </select>
+      </div>
+      <div class="controls">
+        <select onchange="updateDay('yume', this.value)">
+          <option value="weekday">平日</option>
+          <option value="holiday">土日</option>
+        </select>
+        <button onclick="toggleDir('yume')">右回 ↔ 左回</button>
+      </div>
+      <div class="bus-info" id="info-yume"></div>
+    </div>
+
+    <!-- 鷹取団地前 -->
+    <div class="panel" id="takatori">
+      <div class="title">🚏 鷹取団地前</div>
+      <div class="controls">
+        <select onchange="updateDay('takatori', this.value)">
+          <option value="weekday">平日</option>
+          <option value="holiday">土日</option>
+        </select>
+        <button onclick="toggleDir('takatori')">右回 ↔ 左回</button>
+      </div>
+      <div class="bus-info" id="info-takatori"></div>
+    </div>
+  </div>
+
+  <script>
+    // テスト用の簡易時刻表（各停留所、平日/休日、右回/左回、系統ごと）
+    const timetable = {
+      zaike: {
+        weekday: {
+          right: {
+            "11": ["08:10", "08:30", "08:50", "09:10"],
+            "22": ["08:20", "08:40", "09:00"]
+          },
+          left: {
+            "11": ["08:15", "08:35", "08:55", "09:15"],
+            "22": ["08:25", "08:45", "09:05"]
+          }
+        },
+        holiday: {
+          right: {
+            "11": ["09:00", "09:20", "09:40"],
+            "22": ["09:10", "09:30", "09:50"]
+          },
+          left: {
+            "11": ["09:05", "09:25", "09:45"],
+            "22": ["09:15", "09:35", "09:55"]
+          }
+        }
+      },
+      yume: {},
+      takatori: {}
+    };
+
+    // 他の停留所は同じデータで初期化
+    timetable.yume = JSON.parse(JSON.stringify(timetable.zaike));
+    timetable.takatori = JSON.parse(JSON.stringify(timetable.zaike));
+
+    // 各停留所の状態（平日/休日、右回/左回、表示名）
+    const stopState = {
+      zaike: { day: 'weekday', dir: 'right' },
+      yume: { day: 'weekday', dir: 'right', name: '夢野町3丁目' },
+      takatori: { day: 'weekday', dir: 'right' }
+    };
+
+    // 現在時刻のHH:MMを返す
+    function getCurrentTime() {
+      const now = new Date();
+      return now.getHours().toString().padStart(2, '0') + ':' +
+             now.getMinutes().toString().padStart(2, '0');
+    }
+
+    // 次の2便（先発・次発）を取得
+    function getNextBuses(times, current) {
+      const result = times.filter(t => t > current);
+      return [result[0] || '--:--', result[1] || '--:--'];
+    }
+
+    // 表示を更新
+    function updateDisplay(stopId) {
+      const info = document.getElementById('info-' + stopId);
+      const { day, dir } = stopState[stopId];
+      const data = timetable[stopId][day][dir];
+      const now = getCurrentTime();
+
+      let html = '';
+      for (const line in data) {
+        const [next, after] = getNextBuses(data[line], now);
+        html += `
+          <div class="bus-line">
+            <h4>系統 ${line}</h4>
+            <div class="bus-time">先発: ${next}</div>
+            <div class="bus-time">次発: ${after}</div>
+          </div>
+        `;
+      }
+      info.innerHTML = html;
+    }
+
+    // 右回/左回の切り替え
+    function toggleDir(stopId) {
+      stopState[stopId].dir = (stopState[stopId].dir === 'right') ? 'left' : 'right';
+    }
+
+    // 平日/休日の切り替え
+    function updateDay(stopId, dayType) {
+      stopState[stopId].day = dayType;
+    }
+
+    // 中央の停留所選択
+    function changeYumeStop(name) {
+      stopState.yume.name = name;
+    }
+
+    // すべて更新
+    function refreshAll() {
+      updateDisplay('zaike');
+      updateDisplay('yume');
+      updateDisplay('takatori');
+    }
+
+    // 毎秒更新
+    setInterval(refreshAll, 1000);
+
+    // 初期表示
+    refreshAll();
+  </script>
+</body>
+</html>
