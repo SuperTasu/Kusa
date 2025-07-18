@@ -1,12 +1,172 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>PDFビューア</title>
+  <meta charset="UTF-8" />
+  <title>バス電光掲示板</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      margin: 0;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+    }
+    .panel {
+      flex: 1;
+      border-left: 1px solid #333;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .title {
+      font-size: 1.5em;
+      margin-bottom: 5px;
+    }
+    .controls {
+      margin-bottom: 10px;
+    }
+    .controls select, .controls button {
+      margin-right: 5px;
+      padding: 5px;
+      font-size: 1em;
+    }
+    .bus-info {
+      margin-top: 10px;
+    }
+    .bus-line {
+      margin-bottom: 15px;
+    }
+    .bus-line h4 {
+      margin: 5px 0;
+      color: #ffd700;
+    }
+    .bus-time {
+      font-size: 1.2em;
+    }
+  </style>
 </head>
 <body>
-  <h2>PDFを表示します</h2>
-  <iframe src="https://drive.google.com/file/d/13KMtISQfgDPw7UlY7PfzcnWP-OXgaMRC/preview"
-          width="100%" height="800px" style="border:none;"></iframe>
+  <div class="container">
+    <!-- 在家町 -->
+    <div class="panel" id="zaike">
+      <div class="title">🚏 今在家町</div>
+      <div class="controls">
+        <select onchange="updateStop('zaike', this.value)">
+          <option value="weekday">平日</option>
+          <option value="holiday">土日</option>
+        </select>
+        <button onclick="toggleDirection('zaike')">右回 ↔ 左回</button>
+      </div>
+      <div class="bus-info" id="info-zaike"></div>
+    </div>
+
+    <!-- 夢野町3丁目 / 名倉町 -->
+    <div class="panel" id="yume">
+      <div class="title">🚏 
+        <select onchange="changeYumeStop(this.value)">
+          <option value="夢野町3丁目">夢野町3丁目</option>
+          <option value="名倉町">名倉町</option>
+        </select>
+      </div>
+      <div class="controls">
+        <select onchange="updateStop('yume', this.value)">
+          <option value="weekday">平日</option>
+          <option value="holiday">土日</option>
+        </select>
+        <button onclick="toggleDirection('yume')">右回 ↔ 左回</button>
+      </div>
+      <div class="bus-info" id="info-yume"></div>
+    </div>
+
+    <!-- 鷹取団地前 -->
+    <div class="panel" id="takatori">
+      <div class="title">🚏 鷹取団地前</div>
+      <div class="controls">
+        <select onchange="updateStop('takatori', this.value)">
+          <option value="weekday">平日</option>
+          <option value="holiday">土日</option>
+        </select>
+        <button onclick="toggleDirection('takatori')">右回 ↔ 左回</button>
+      </div>
+      <div class="bus-info" id="info-takatori"></div>
+    </div>
+  </div>
+
+  <script>
+    const timeTables = {
+      zaike: {
+        weekday: {
+          right: {
+            '11': ['08:12', '08:40'],
+            '22': ['08:20', '08:55']
+          },
+          left: {
+            '11': ['08:15', '08:45'],
+            '22': ['08:25', '09:00']p
+          }
+        },
+        holiday: {
+          right: {
+            '11': ['08:30', '09:00'],
+            '22': ['08:45', '09:20']
+          },
+          left: {
+            '11': ['08:35', '09:10'],
+            '22': ['08:50', '09:25']
+          }
+        }
+      },
+      yume: JSON.parse(JSON.stringify(this.zaike)),
+      takatori: JSON.parse(JSON.stringify(this.zaike))
+    };
+
+    const stopState = {
+      zaike: { day: 'weekday', dir: 'right' },
+      yume: { day: 'weekday', dir: 'right', name: '夢野町3丁目' },
+      takatori: { day: 'weekday', dir: 'right' }
+    };
+
+    function updateDisplay(stopId) {
+      const info = document.getElementById('info-' + stopId);
+      const { day, dir } = stopState[stopId];
+      const data = timeTables[stopId][day][dir];
+
+      info.innerHTML = Object.entries(data).map(([line, times]) => `
+        <div class="bus-line">
+          <h4>系統 ${line}</h4>
+          <div class="bus-time">先発: ${times[0]}</div>
+          <div class="bus-time">次発: ${times[1]}</div>
+        </div>
+      `).join('');
+    }
+
+    function toggleDirection(stopId) {
+      stopState[stopId].dir = stopState[stopId].dir === 'right' ? 'left' : 'right';
+      updateDisplay(stopId);
+    }
+
+    function updateStop(stopId, dayType) {
+      stopState[stopId].day = dayType;
+      updateDisplay(stopId);
+    }
+
+    function changeYumeStop(name) {
+      stopState.yume.name = name;
+      document.querySelector('#yume .title').innerHTML = '🚏 ' +
+        `<select onchange="changeYumeStop(this.value)">
+           <option value="夢野町3丁目"${name === "夢野町3丁目" ? " selected" : ""}>夢野町3丁目</option>
+           <option value="名倉町"${name === "名倉町" ? " selected" : ""}>名倉町</option>
+         </select>`;
+    }
+
+    // 初期表示
+    updateDisplay('zaike');
+    updateDisplay('yume');
+    updateDisplay('takatori');
+  </script>
 </body>
 </html>
+
